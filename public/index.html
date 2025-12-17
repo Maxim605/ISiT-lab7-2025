@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Визуализация графа</title>
+    <script src="/d3.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            margin-top: 0;
+            color: #333;
+        }
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+        .controls input, .controls button, .controls label {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .controls label {
+            border: none;
+            padding: 8px 4px 8px 0;
+            margin-right: 5px;
+        }
+        .controls input[type="text"], .controls input[type="number"] {
+            min-width: 120px;
+        }
+        .controls input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            margin: 0;
+        }
+        .controls button {
+            background: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        .controls button:hover {
+            background: #0056b3;
+        }
+        .settings-panel {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        .settings-panel h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        .settings-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            gap: 10px;
+        }
+        .settings-row label {
+            min-width: 150px;
+            font-weight: 500;
+        }
+        .settings-row input[type="range"] {
+            flex: 1;
+            max-width: 300px;
+        }
+        .settings-row input[type="number"] {
+            width: 80px;
+        }
+        .settings-row button {
+            margin-left: auto;
+        }
+        #graph {
+            width: 100%;
+            height: 800px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .node {
+            cursor: pointer;
+        }
+        .link {
+            stroke: #999;
+            stroke-opacity: 0.6;
+            stroke-width: 1.5;
+        }
+        .node-label {
+            font-size: 12px;
+            pointer-events: none;
+            text-anchor: middle;
+            fill: #333;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-size: 13px;
+            pointer-events: auto;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            max-width: 300px;
+            max-height: 400px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+        .tooltip::-webkit-scrollbar {
+            width: 8px;
+        }
+        .tooltip::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+        .tooltip::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+        }
+        .tooltip::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+        .tooltip.visible {
+            opacity: 1;
+        }
+        .tooltip-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+            padding-bottom: 5px;
+        }
+        .tooltip-item {
+            margin: 3px 0;
+        }
+        .tooltip-item-with-button {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 3px 0;
+        }
+        .copy-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            cursor: pointer;
+            padding: 4px 8px;
+            display: inline-flex;
+            align-items: center;
+            transition: background 0.2s;
+        }
+        .copy-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        .copy-button:active {
+            background: rgba(255, 255, 255, 0.4);
+        }
+        .copy-icon {
+            width: 14px;
+            height: 14px;
+            fill: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Визуализация графа</h1>
+        <div class="controls">
+            <button onclick="loadGraph()">Загрузить граф</button>
+            <button onclick="resetZoom()">Сбросить масштаб</button>
+            <button onclick="restartSimulation()">Перезапустить симуляцию</button>
+            <span id="status"></span>
+            <span style="margin-left: 20px; color: #666; font-size: 12px;">
+                Масштаб: колесико мыши | Перетаскивание: зажмите узел
+            </span>
+        </div>
+        <div class="settings-panel" style="margin-top: 20px;">
+            <h3>Трассировка маршрута</h3>
+            <div style="margin-bottom: 10px;">
+                <label for="urlsInput" style="display: block; margin-bottom: 5px; font-weight: 500;">Введите URL (по одному на строку):</label>
+                <textarea id="urlsInput" rows="5" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace; font-size: 12px;" placeholder="velocityk.ru&#10;rollingmoto.ru&#10;pitbikemarket.ru"></textarea>
+            </div>
+            <button onclick="runTrace()" style="background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 14px;">
+                Выполнить трассировку
+            </button>
+            <span id="traceStatus" style="margin-left: 10px; color: #666;"></span>
+        </div>
+        <div id="graph"></div>
+        <div id="tooltip" class="tooltip"></div>
+        <div class="settings-panel">
+            <h3>Настройки графа</h3>
+            <div class="settings-row">
+                <label>Сила отталкивания (Charge):</label>
+                <input type="range" id="chargeStrength" min="-1000" max="0" value="-300" step="50">
+                <input type="number" id="chargeStrengthValue" value="-300" min="-1000" max="0" step="50">
+                <button onclick="updateCharge()">Применить</button>
+            </div>
+            <div class="settings-row">
+                <label>Расстояние связей (Link Distance):</label>
+                <input type="range" id="linkDistance" min="10" max="200" value="50" step="10">
+                <input type="number" id="linkDistanceValue" value="50" min="10" max="200" step="10">
+                <button onclick="updateLinkDistance()">Применить</button>
+            </div>
+            <div class="settings-row">
+                <label>Радиус столкновения (Collision):</label>
+                <input type="range" id="collisionRadius" min="5" max="50" value="20" step="5">
+                <input type="number" id="collisionRadiusValue" value="20" min="5" max="50" step="5">
+                <button onclick="updateCollision()">Применить</button>
+            </div>
+            <div class="settings-row">
+                <label>Скорость затухания (Alpha Decay):</label>
+                <input type="range" id="alphaDecay" min="0.01" max="0.1" value="0.0228" step="0.01">
+                <input type="number" id="alphaDecayValue" value="0.0228" min="0.01" max="0.1" step="0.01">
+                <button onclick="updateAlphaDecay()">Применить</button>
+            </div>
+            <div class="settings-row">
+                <label>Размер узлов:</label>
+                <input type="range" id="nodeSize" min="3" max="20" value="8" step="1">
+                <input type="number" id="nodeSizeValue" value="8" min="3" max="20" step="1">
+                <button onclick="updateNodeSize()">Применить</button>
+            </div>
+        </div>
+        <div class="settings-panel">
+            <h3>Настройки всплывающей подсказки</h3>
+            <div class="settings-row">
+                <label>Размер шрифта:</label>
+                <input type="range" id="tooltipFontSize" min="10" max="18" value="13" step="1">
+                <input type="number" id="tooltipFontSizeValue" value="13" min="10" max="18" step="1">
+                <button onclick="updateTooltipFontSize()">Применить</button>
+            </div>
+            <div class="settings-row">
+                <label>Цвет текста:</label>
+                <input type="color" id="tooltipTextColor" value="#ffffff">
+                <button onclick="updateTooltipTextColor()">Применить</button>
+            </div>
+            <div class="settings-row">
+                <label>Цвет фона:</label>
+                <input type="color" id="tooltipBackgroundColor" value="#000000">
+                <button onclick="updateTooltipBackgroundColor()">Применить</button>
+            </div>
+        </div>
+        <div class="settings-panel">
+            <h3>Настройки выбранной вершины</h3>
+            <div class="settings-row">
+                <label>Цвет обводки:</label>
+                <input type="color" id="selectedNodeStrokeColor" value="#ff0000">
+                <button onclick="updateSelectedNodeStroke()">Применить</button>
+            </div>
+            <div class="settings-row">
+                <label>Ширина обводки:</label>
+                <input type="range" id="selectedNodeStrokeWidth" min="1" max="10" value="3" step="1">
+                <input type="number" id="selectedNodeStrokeWidthValue" value="3" min="1" max="10" step="1">
+                <button onclick="updateSelectedNodeStroke()">Применить</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let svg, simulation, nodes, links, g, zoom;
+        let currentParams = {
+            chargeStrength: -300,
+            linkDistance: 50,
+            collisionRadius: 20,
+            alphaDecay: 0.0228,
+            nodeSize: 8,
+            tooltipFontSize: 13,
+            tooltipTextColor: '#ffffff',
+            tooltipBackgroundColor: '#000000',
+            selectedNodeStrokeColor: '#ff0000',
+            selectedNodeStrokeWidth: 3
+        };
+        let selectedNodeId = null;
+        let selectedNodeData = null;
+
+        // Синхронизация range и number inputs
+        document.addEventListener('DOMContentLoaded', () => {
+            const syncInputs = (rangeId, numberId) => {
+                const range = document.getElementById(rangeId);
+                const number = document.getElementById(numberId);
+                range.addEventListener('input', () => {
+                    number.value = range.value;
+                });
+                number.addEventListener('input', () => {
+                    range.value = number.value;
+                });
+            };
+            syncInputs('chargeStrength', 'chargeStrengthValue');
+            syncInputs('linkDistance', 'linkDistanceValue');
+            syncInputs('collisionRadius', 'collisionRadiusValue');
+            syncInputs('alphaDecay', 'alphaDecayValue');
+            syncInputs('nodeSize', 'nodeSizeValue');
+            syncInputs('tooltipFontSize', 'tooltipFontSizeValue');
+            syncInputs('selectedNodeStrokeWidth', 'selectedNodeStrokeWidthValue');
+        });
+
+        function loadGraph() {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = 'Загрузка...';
+            
+            fetch('/api/graph')
+                .then(response => response.json())
+                .then(data => {
+                    statusEl.textContent = `Загружено: ${data.nodes.length} узлов, ${data.links.length} связей`;
+                    renderGraph(data);
+                })
+                .catch(error => {
+                    console.error('Ошибка:', error);
+                    statusEl.textContent = 'Ошибка загрузки данных';
+                });
+        }
+
+        function runTrace() {
+            const urlsInput = document.getElementById('urlsInput');
+            const traceStatus = document.getElementById('traceStatus');
+            const statusEl = document.getElementById('status');
+            
+            const urls = urlsInput.value
+                .split('\n')
+                .map(url => url.trim())
+                .filter(url => url.length > 0);
+            
+            if (urls.length === 0) {
+                traceStatus.textContent = 'Введите хотя бы один URL';
+                traceStatus.style.color = '#dc3545';
+                return;
+            }
+            
+            traceStatus.textContent = 'Выполняется трассировка...';
+            traceStatus.style.color = '#666';
+            statusEl.textContent = 'Ожидание результатов трассировки...';
+            
+            fetch('/api/trace', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ urls: urls })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    traceStatus.textContent = 'Ошибка: ' + data.error;
+                    traceStatus.style.color = '#dc3545';
+                    statusEl.textContent = 'Ошибка трассировки';
+                } else {
+                    traceStatus.textContent = 'Трассировка завершена';
+                    traceStatus.style.color = '#28a745';
+                    statusEl.textContent = `Загружено: ${data.nodes.length} узлов, ${data.links.length} связей`;
+                    renderGraph(data);
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка:', error);
+                traceStatus.textContent = 'Ошибка выполнения трассировки';
+                traceStatus.style.color = '#dc3545';
+                statusEl.textContent = 'Ошибка трассировки';
+            });
+        }
+
+        function renderGraph(data) {
+            const graphEl = document.getElementById('graph');
+            graphEl.innerHTML = '';
+            
+            // Сбрасываем выбранную вершину при перерисовке
+            selectedNodeId = null;
+            selectedNodeData = null;
+            
+            const width = graphEl.clientWidth;
+            const height = 800;
+
+            // Сохраняем ссылки на данные
+            nodes = data.nodes;
+            links = data.links;
+
+            svg = d3.select('#graph')
+                .append('svg')
+                .attr('width', width)
+                .attr('height', height);
+
+            // Создаем группу для zoom трансформации
+            g = svg.append('g');
+
+            // Настраиваем zoom
+            zoom = d3.zoom()
+                .scaleExtent([0.1, 4])
+                .on('zoom', (event) => {
+                    g.attr('transform', event.transform);
+                    // Обновляем позицию tooltip при зуме
+                    if (selectedNodeId && selectedNodeData) {
+                        updateSelectedNodeTooltip();
+                    }
+                });
+
+            svg.call(zoom);
+
+            // Создаем force simulation с текущими параметрами
+            simulation = d3.forceSimulation(nodes)
+                .force('link', d3.forceLink(links).id(d => d.id).distance(currentParams.linkDistance))
+                .force('charge', d3.forceManyBody().strength(currentParams.chargeStrength))
+                .force('center', d3.forceCenter(width / 2, height / 2))
+                .force('collision', d3.forceCollide().radius(currentParams.collisionRadius))
+                .alphaDecay(currentParams.alphaDecay);
+
+            // Рисуем связи
+            const link = g.append('g')
+                .selectAll('line')
+                .data(links)
+                .enter()
+                .append('line')
+                .attr('class', 'link');
+
+            // Рисуем узлы
+            const node = g.append('g')
+                .selectAll('circle')
+                .data(nodes)
+                .enter()
+                .append('circle')
+                .attr('class', 'node')
+                .attr('r', currentParams.nodeSize)
+                .attr('fill', d => {
+                    // Генерируем рандомный цвет на основе id узла для стабильности
+                    const hash = d.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+                    const hue = hash % 360;
+                    return d3.hsl(hue, 0.7, 0.5).toString();
+                })
+                .style('cursor', 'pointer')
+                .style('stroke', d => d.id === selectedNodeId ? currentParams.selectedNodeStrokeColor : 'none')
+                .style('stroke-width', d => d.id === selectedNodeId ? currentParams.selectedNodeStrokeWidth : 0)
+                .on('mouseover', function(event, d) {
+                    if (!selectedNodeId) {
+                        showTooltip(event, d);
+                    }
+                })
+                .on('mousemove', function(event) {
+                    if (!selectedNodeId) {
+                        moveTooltip(event);
+                    }
+                })
+                .on('mouseout', function() {
+                    if (!selectedNodeId) {
+                        hideTooltip();
+                    }
+                })
+                .on('click', function(event, d) {
+                    toggleNodeSelection(d);
+                })
+                .call(drag(simulation));
+
+            // Добавляем подписи
+            const label = g.append('g')
+                .selectAll('text')
+                .data(nodes)
+                .enter()
+                .append('text')
+                .attr('class', 'node-label')
+                .text(d => d.name)
+                .attr('dy', currentParams.nodeSize + 5);
+
+            // Обновляем позиции при симуляции
+            simulation.on('tick', () => {
+                link
+                    .attr('x1', d => d.source.x)
+                    .attr('y1', d => d.source.y)
+                    .attr('x2', d => d.target.x)
+                    .attr('y2', d => d.target.y);
+
+                node
+                    .attr('cx', d => d.x)
+                    .attr('cy', d => d.y);
+
+                label
+                    .attr('x', d => d.x)
+                    .attr('y', d => d.y);
+                
+                // Обновляем позицию tooltip для выбранной вершины
+                if (selectedNodeId && selectedNodeData) {
+                    updateSelectedNodeTooltip();
+                }
+            });
+
+            // Функция для перетаскивания узлов
+            function drag(simulation) {
+                function dragstarted(event) {
+                    if (!event.active) simulation.alphaTarget(0.3).restart();
+                    event.subject.fx = event.subject.x;
+                    event.subject.fy = event.subject.y;
+                }
+
+                function dragged(event) {
+                    event.subject.fx = event.x;
+                    event.subject.fy = event.y;
+                }
+
+                function dragended(event) {
+                    if (!event.active) simulation.alphaTarget(0);
+                    event.subject.fx = null;
+                    event.subject.fy = null;
+                }
+
+                return d3.drag()
+                    .on('start', dragstarted)
+                    .on('drag', dragged)
+                    .on('end', dragended);
+            }
+        }
+
+        function resetZoom() {
+            if (svg && zoom) {
+                svg.transition()
+                    .duration(750)
+                    .call(zoom.transform, d3.zoomIdentity);
+            }
+        }
+
+        function restartSimulation() {
+            if (simulation) {
+                simulation.alpha(1).restart();
+            }
+        }
+
+        function updateCharge() {
+            const value = parseFloat(document.getElementById('chargeStrength').value);
+            currentParams.chargeStrength = value;
+            if (simulation) {
+                simulation.force('charge', d3.forceManyBody().strength(value));
+                simulation.alpha(1).restart();
+            }
+        }
+
+        function updateLinkDistance() {
+            const value = parseFloat(document.getElementById('linkDistance').value);
+            currentParams.linkDistance = value;
+            if (simulation && links) {
+                const linkForce = simulation.force('link');
+                if (linkForce) {
+                    linkForce.distance(value);
+                } else {
+                    simulation.force('link', d3.forceLink(links).id(d => d.id).distance(value));
+                }
+                simulation.alpha(1).restart();
+            }
+        }
+
+        function updateCollision() {
+            const value = parseFloat(document.getElementById('collisionRadius').value);
+            currentParams.collisionRadius = value;
+            if (simulation) {
+                simulation.force('collision', d3.forceCollide().radius(value));
+                simulation.alpha(1).restart();
+            }
+        }
+
+        function updateAlphaDecay() {
+            const value = parseFloat(document.getElementById('alphaDecay').value);
+            currentParams.alphaDecay = value;
+            if (simulation) {
+                simulation.alphaDecay(value);
+                simulation.alpha(1).restart();
+            }
+        }
+
+        function updateNodeSize() {
+            const value = parseFloat(document.getElementById('nodeSize').value);
+            currentParams.nodeSize = value;
+            if (g) {
+                g.selectAll('.node')
+                    .attr('r', value);
+                g.selectAll('.node-label')
+                    .attr('dy', value + 5);
+            }
+        }
+
+        // Функции для работы с tooltip
+        function showTooltip(event, nodeData) {
+            const tooltip = document.getElementById('tooltip');
+            if (!tooltip) return;
+            
+            const nodeId = nodeData.id || 'N/A';
+            const escapedNodeId = String(nodeId).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            
+            // Формируем содержимое tooltip
+            let content = '<div class="tooltip-title">Информация об узле</div>';
+            content += `<div class="tooltip-item-with-button">
+                <span><strong>ID:</strong> ${nodeId}</span>
+                <button class="copy-button" onclick="copyToClipboard('${escapedNodeId}', this)" title="Копировать ID">
+                    <svg class="copy-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+                    </svg>
+                </button>
+            </div>`;
+            content += `<div class="tooltip-item"><strong>Имя:</strong> ${nodeData.name || nodeId}</div>`;
+            
+            // Подсчитываем количество связей для этого узла
+            if (links) {
+                const connections = links.filter(link => {
+                    const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+                    const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+                    return sourceId === nodeData.id || targetId === nodeData.id;
+                }).length;
+                content += `<div class="tooltip-item"><strong>Связей:</strong> ${connections}</div>`;
+            }
+            
+            tooltip.innerHTML = content;
+            tooltip.style.fontSize = currentParams.tooltipFontSize + 'px';
+            tooltip.style.color = currentParams.tooltipTextColor;
+            const bgColor = currentParams.tooltipBackgroundColor;
+            const r = parseInt(bgColor.slice(1, 3), 16);
+            const g = parseInt(bgColor.slice(3, 5), 16);
+            const b = parseInt(bgColor.slice(5, 7), 16);
+            tooltip.style.background = `rgba(${r}, ${g}, ${b}, 0.9)`;
+            tooltip.classList.add('visible');
+            moveTooltip(event);
+        }
+        
+        // Функция для копирования в буфер обмена
+        function copyToClipboard(text, button) {
+            if (event) {
+                event.stopPropagation();
+                event.preventDefault();
+            }
+            navigator.clipboard.writeText(text).then(() => {
+                // Визуальная обратная связь
+                const originalHTML = button.innerHTML;
+                button.innerHTML = '<svg class="copy-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
+                button.style.background = 'rgba(76, 175, 80, 0.5)';
+                setTimeout(() => {
+                    button.innerHTML = originalHTML;
+                    button.style.background = '';
+                }, 1000);
+            }).catch(err => {
+                console.error('Ошибка копирования:', err);
+                // Fallback для старых браузеров
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                textArea.style.position = 'fixed';
+                textArea.style.opacity = '0';
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    const originalHTML = button.innerHTML;
+                    button.innerHTML = '<svg class="copy-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
+                    button.style.background = 'rgba(76, 175, 80, 0.5)';
+                    setTimeout(() => {
+                        button.innerHTML = originalHTML;
+                        button.style.background = '';
+                    }, 1000);
+                } catch (err) {
+                    console.error('Ошибка копирования (fallback):', err);
+                }
+                document.body.removeChild(textArea);
+            });
+        }
+
+        function moveTooltip(event) {
+            const tooltip = document.getElementById('tooltip');
+            if (!tooltip) return;
+            
+            // Позиционируем tooltip рядом с курсором
+            const offset = 15;
+            tooltip.style.left = (event.pageX + offset) + 'px';
+            tooltip.style.top = (event.pageY + offset) + 'px';
+        }
+
+        function hideTooltip() {
+            if (selectedNodeId) return;
+            
+            const tooltip = document.getElementById('tooltip');
+            if (tooltip) {
+                tooltip.classList.remove('visible');
+            }
+        }
+        
+        function toggleNodeSelection(nodeData) {
+            const nodeId = nodeData.id || 'N/A';
+            
+            if (selectedNodeId === nodeId) {
+                selectedNodeId = null;
+                selectedNodeData = null;
+                hideTooltip();
+                
+                if (g) {
+                    g.selectAll('.node')
+                        .style('stroke', 'none')
+                        .style('stroke-width', 0);
+                }
+            } else {
+                selectedNodeId = nodeId;
+                selectedNodeData = nodeData;
+                
+                const escapedNodeId = String(nodeId).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                showTooltip({ pageX: 0, pageY: 0 }, nodeData);
+                
+                if (g) {
+                    g.selectAll('.node')
+                        .style('stroke', d => d.id === selectedNodeId ? currentParams.selectedNodeStrokeColor : 'none')
+                        .style('stroke-width', d => d.id === selectedNodeId ? currentParams.selectedNodeStrokeWidth : 0);
+                }
+                
+                updateSelectedNodeTooltip();
+            }
+        }
+        
+        function updateSelectedNodeTooltip() {
+            if (!selectedNodeId || !selectedNodeData || !g || !svg) return;
+            
+            // Находим выбранный узел
+            const selectedNode = nodes.find(n => n.id === selectedNodeId);
+            if (!selectedNode || selectedNode.x === undefined || selectedNode.y === undefined) return;
+            
+            // Получаем трансформацию SVG
+            const transform = d3.zoomTransform(svg.node());
+            const nodeX = selectedNode.x * transform.k + transform.x;
+            const nodeY = selectedNode.y * transform.k + transform.y;
+            
+            // Получаем позицию tooltip
+            const tooltip = document.getElementById('tooltip');
+            if (!tooltip) return;
+            
+            const graphRect = document.getElementById('graph').getBoundingClientRect();
+            
+            // Позиционируем tooltip справа от вершины
+            const offset = 20;
+            const tooltipX = graphRect.left + nodeX + currentParams.nodeSize + offset;
+            const tooltipY = graphRect.top + nodeY;
+            
+            tooltip.style.left = tooltipX + 'px';
+            tooltip.style.top = tooltipY + 'px';
+            tooltip.classList.add('visible');
+        }
+
+        function updateTooltipFontSize() {
+            const value = parseFloat(document.getElementById('tooltipFontSize').value);
+            currentParams.tooltipFontSize = value;
+            const tooltip = document.getElementById('tooltip');
+            if (tooltip) {
+                tooltip.style.fontSize = value + 'px';
+            }
+        }
+
+        function updateTooltipTextColor() {
+            const value = document.getElementById('tooltipTextColor').value;
+            currentParams.tooltipTextColor = value;
+            const tooltip = document.getElementById('tooltip');
+            if (tooltip) {
+                tooltip.style.color = value;
+            }
+        }
+        
+        function updateTooltipBackgroundColor() {
+            const value = document.getElementById('tooltipBackgroundColor').value;
+            currentParams.tooltipBackgroundColor = value;
+            const tooltip = document.getElementById('tooltip');
+            if (tooltip) {
+                // Преобразуем hex в rgba для прозрачности
+                const r = parseInt(value.slice(1, 3), 16);
+                const g = parseInt(value.slice(3, 5), 16);
+                const b = parseInt(value.slice(5, 7), 16);
+                tooltip.style.background = `rgba(${r}, ${g}, ${b}, 0.9)`;
+            }
+        }
+        
+        function updateSelectedNodeStroke() {
+            const color = document.getElementById('selectedNodeStrokeColor').value;
+            const width = parseFloat(document.getElementById('selectedNodeStrokeWidth').value);
+            currentParams.selectedNodeStrokeColor = color;
+            currentParams.selectedNodeStrokeWidth = width;
+            
+            if (g && selectedNodeId) {
+                g.selectAll('.node')
+                    .style('stroke', d => d.id === selectedNodeId ? color : 'none')
+                    .style('stroke-width', d => d.id === selectedNodeId ? width : 0);
+            }
+        }
+
+        // Загружаем граф при загрузке страницы
+        window.addEventListener('load', () => {
+            updateTooltipBackgroundColor();
+            loadGraph();
+        });
+    </script>
+</body>
+</html>
+

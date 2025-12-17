@@ -1,0 +1,193 @@
+{
+  "nodes": [
+    {
+      "id": "hop1",
+      "name": "(YOU)",
+      "fontsize": "10",
+      "style": "filled"
+    },
+    {
+      "id": "hop2",
+      "name": "10.56.40.104"
+    },
+    {
+      "id": "hop3",
+      "name": "172.16.13.114",
+      "color": "indigo"
+    },
+    {
+      "id": "hop4",
+      "name": "172.16.13.89",
+      "color": "indigo"
+    },
+    {
+      "id": "hop5",
+      "name": "195.34.36.225",
+      "color": "indigo"
+    },
+    {
+      "id": "hop6",
+      "name": "139.45.225.162",
+      "color": "indigo"
+    },
+    {
+      "id": "hop7",
+      "name": "139.45.243.78",
+      "color": "indigo"
+    },
+    {
+      "id": "hop8",
+      "name": "92.53.93.178",
+      "color": "indigo"
+    },
+    {
+      "id": "hop9",
+      "name": "92.53.93.63",
+      "color": "indigo"
+    },
+    {
+      "id": "hop10",
+      "name": "velocityk.ru",
+      "color": "indigo",
+      "fontsize": "8",
+      "style": "filled"
+    },
+    {
+      "id": "hop11",
+      "name": "172.16.13.93",
+      "color": "indigo"
+    },
+    {
+      "id": "hop12",
+      "name": "195.34.38.142",
+      "color": "indigo"
+    },
+    {
+      "id": "hop13",
+      "name": "79.104.235.131",
+      "color": "indigo"
+    },
+    {
+      "id": "hop14",
+      "name": "198.18.9.193",
+      "color": "indigo"
+    },
+    {
+      "id": "hop15",
+      "name": "92.53.94.69",
+      "color": "indigo"
+    },
+    {
+      "id": "hop16",
+      "name": "rollingmoto.ru",
+      "color": "indigo",
+      "fontsize": "8",
+      "style": "filled"
+    },
+    {
+      "id": "hop17",
+      "name": "pitbikemarket.ru",
+      "color": "indigo",
+      "fontsize": "8",
+      "style": "filled"
+    }
+  ],
+  "links": [
+    {
+      "source": "hop1",
+      "target": "hop2",
+      "label": "4.42",
+      "len": 1.57097936459786
+    },
+    {
+      "source": "hop2",
+      "target": "hop3",
+      "label": "33.91",
+      "len": 2.37456971380264
+    },
+    {
+      "source": "hop3",
+      "target": "hop4",
+      "label": "0.02",
+      "len": 0.439022762846539
+    },
+    {
+      "source": "hop4",
+      "target": "hop5",
+      "label": "8.73",
+      "len": 1.83941307092048
+    },
+    {
+      "source": "hop5",
+      "target": "hop6",
+      "label": "-0.01",
+      "len": 0.439022762846539
+    },
+    {
+      "source": "hop6",
+      "target": "hop7",
+      "label": "8.87",
+      "len": 1.84608813239554
+    },
+    {
+      "source": "hop7",
+      "target": "hop8",
+      "label": "-0.00",
+      "len": 0.439022762846539
+    },
+    {
+      "source": "hop8",
+      "target": "hop9",
+      "label": "1.13",
+      "len": 1.03402688611022
+    },
+    {
+      "source": "hop9",
+      "target": "hop10",
+      "label": "0.36",
+      "len": 0.579466314202775
+    },
+    {
+      "source": "hop3",
+      "target": "hop11",
+      "label": "0.66",
+      "len": 0.821106086326134
+    },
+    {
+      "source": "hop5",
+      "target": "hop12",
+      "label": "-0.02",
+      "len": 0.439022762846539
+    },
+    {
+      "source": "hop12",
+      "target": "hop13",
+      "label": "-0.02",
+      "len": 0.439022762846539
+    },
+    {
+      "source": "hop13",
+      "target": "hop14",
+      "label": "3.29",
+      "len": 1.45482804219297
+    },
+    {
+      "source": "hop14",
+      "target": "hop15",
+      "label": "-0.02",
+      "len": 0.439022762846539
+    },
+    {
+      "source": "hop15",
+      "target": "hop16",
+      "label": "-0.01",
+      "len": 0.439022762846539
+    },
+    {
+      "source": "hop3",
+      "target": "hop17",
+      "label": "1.13",
+      "len": 1.03472335272248
+    }
+  ]
+}

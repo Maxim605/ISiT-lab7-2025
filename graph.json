@@ -1,0 +1,82 @@
+{
+  "nodes": [
+    {
+      "id": "hop1",
+      "name": "(YOU)",
+      "fontsize": "10",
+      "style": "filled"
+    },
+    {
+      "id": "hop2",
+      "name": "10.168.67.75",
+      "color": "indigo"
+    },
+    {
+      "id": "hop3",
+      "name": "172.16.9.142",
+      "color": "indigo"
+    },
+    {
+      "id": "hop4",
+      "name": "172.16.13.81",
+      "color": "indigo"
+    },
+    {
+      "id": "hop5",
+      "name": "195.34.38.101",
+      "color": "indigo"
+    },
+    {
+      "id": "hop6",
+      "name": "rbk.ru",
+      "color": "indigo",
+      "fontsize": "8",
+      "style": "filled"
+    },
+    {
+      "id": "hop7",
+      "name": "lenta.ru",
+      "color": "indigo",
+      "fontsize": "8",
+      "style": "filled"
+    }
+  ],
+  "links": [
+    {
+      "source": "hop1",
+      "target": "hop2",
+      "label": "4.38",
+      "len": 1.56784259688148
+    },
+    {
+      "source": "hop2",
+      "target": "hop3",
+      "label": "27.82",
+      "len": 2.29655520121095
+    },
+    {
+      "source": "hop3",
+      "target": "hop4",
+      "label": "-0.02",
+      "len": 0.439022762846539
+    },
+    {
+      "source": "hop4",
+      "target": "hop5",
+      "label": "6.68",
+      "len": 1.73395523499801
+    },
+    {
+      "source": "hop5",
+      "target": "hop6",
+      "label": "2.56",
+      "len": 1.35558863728503
+    },
+    {
+      "source": "hop3",
+      "target": "hop7",
+      "label": "-7.50",
+      "len": 0.439022762846539
+    }
+  ]
+}
